@@ -1,0 +1,258 @@
+#include <iostream>
+#include <iomanip>
+#include <stdexcept>
+#include <limits>
+
+class Time {
+private:
+    short int hours;
+    short int minutes;
+
+    // Метод для нормализации времени
+    void normalize() {
+        if (minutes >= 60) {
+            hours += minutes / 60;
+            minutes %= 60;
+        }
+        else if (minutes < 0) {
+            hours -= (-minutes + 59) / 60;
+            minutes = (minutes % 60 + 60) % 60;
+        }
+
+        if (hours >= 24) {
+            hours %= 24;
+        }
+        else if (hours < 0) {
+            hours = (hours % 24 + 24) % 24;
+        }
+    }
+
+public:
+    // Конструктор по умолчанию
+    Time() : hours(0), minutes(0) {}
+
+    // Конструктор с параметрами
+    Time(short int h, short int m) : hours(h), minutes(m) {
+        if (!isValidTime(h, m)) {
+            throw std::invalid_argument("Некорректное время: часы должны быть от 0 до 23, минуты от 0 до 59");
+        }
+    }
+
+    // Конструктор копирования
+    Time(const Time& other) : hours(other.hours), minutes(other.minutes) {}
+
+    // Геттеры
+    short int getHours() const { return hours; }
+    short int getMinutes() const { return minutes; }
+
+    // Сеттеры
+    void setHours(short int h) {
+        if (h < 0 || h > 23) {
+            throw std::invalid_argument("Часы должны быть от 0 до 23");
+        }
+        hours = h;
+    }
+
+    void setMinutes(short int m) {
+        if (m < 0 || m > 59) {
+            throw std::invalid_argument("Минуты должны быть от 0 до 59");
+        }
+        minutes = m;
+    }
+
+    // Метод для проверки корректности времени
+    static bool isValidTime(short int h, short int m) {
+        return (h >= 0 && h <= 23) && (m >= 0 && m <= 59);
+    }
+
+    // Метод вычитания
+    Time subtract(const Time& other) const {
+        int totalMinutes1 = hours * 60 + minutes;
+        int totalMinutes2 = other.hours * 60 + other.minutes;
+        int diffMinutes = totalMinutes1 - totalMinutes2;
+
+        // Переход через сутки
+        if (diffMinutes < 0) {
+            diffMinutes += 24 * 60; // Переход к предыдущим суткам
+        }
+
+        short int resultHours = diffMinutes / 60;
+        short int resultMinutes = diffMinutes % 60;
+
+        // Нормализация результата
+        if (resultHours >= 24) {
+            resultHours %= 24;
+        }
+
+        return Time(resultHours, resultMinutes);
+    }
+
+    // Перегрузка оператора вывода
+    friend std::ostream& operator<<(std::ostream& os, const Time& time) {
+        os << std::setw(2) << std::setfill('0') << time.hours << ":"
+            << std::setw(2) << std::setfill('0') << time.minutes;
+        return os;
+    }
+
+    // Метод для ввода времени
+    static Time inputTime(const std::string& prompt) {
+        short int h, m;
+        std::cout << prompt;
+
+        while (true) {
+            std::cout << "Введите часы (0-23): ";
+            std::cin >> h;
+            std::cout << "Введите минуты (0-59): ";
+            std::cin >> m;
+
+            if (isValidTime(h, m)) {
+                break;
+            }
+            std::cout << "Вы ввели несуществуещеее время, исправтесь: \n";
+        }
+
+        return Time(h, m);
+    }
+};
+
+// Функция для очистки буфера ввода
+void clearInputBuffer() {
+    std::cin.clear();
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+}
+
+// Функция для отображения меню
+void displayMenu() {
+    std::cout << "\n=== МЕНЮ ===\n";
+    std::cout << "1. Тестирование конструкторов\n";
+    std::cout << "2. Тестирование геттеров и сеттеров\n";
+    std::cout << "3. Тестирование оператора вывода\n";
+    std::cout << "4. Тестирование вычитания\n";
+    std::cout << "0. Выход\n";
+    std::cout << "Выберите нужный пункт\: ";
+}
+
+// Функция для тестирования конструкторов
+void testConstructors() {
+    std::cout << "\n=== ТЕСТИРОВАНИЕ КОНСТРУКТОРОВ ===\n";
+
+    // Тест конструктора по умолчанию
+    std::cout << "1. Конструктор по умолчанию:\n";
+    Time t1;
+    std::cout << "Time t1; -> " << t1 << "\n\n";
+
+    // Тест конструктора с параметрами
+    std::cout << "2. Конструктор с параметрами:\n";
+    Time t2 = Time::inputTime("Введите параметры для конструктора:\n");
+    std::cout << "Результат: " << t2 << "\n\n";
+
+    // Тест конструктора копирования
+    std::cout << "3. Конструктор копирования (копируем предыдущий объект):\n";
+    Time t3(t2);
+    std::cout << "Time t3(t2); -> " << t3 << "\n\n";
+
+    std::cout << "Нажмите Enter для продолжения...";
+    clearInputBuffer();
+    std::cin.get();
+}
+
+// Функция для тестирования геттеров и сеттеров
+void testGettersSetters() {
+    std::cout << "\n=== ТЕСТИРОВАНИЕ ГЕТТЕРОВ И СЕТТЕРОВ ===\n";
+
+    Time t;
+    std::cout << "Начальное время: " << t << "\n";
+
+    // Тест сеттеров и геттеров
+    short int h, m;
+
+    std::cout << "Тестирование setHours/getHours:\n";
+    std::cout << "Введите новое значение часов (0-23): ";
+    std::cin >> h;
+    t.setHours(h);
+    std::cout << "getHours() вернул: " << t.getHours() << "\n";
+
+    std::cout << "Тестирование setMinutes/getMinutes:\n";
+    std::cout << "Введите новое значение минут (0-59): ";
+    std::cin >> m;
+    t.setMinutes(m);
+    std::cout << "getMinutes() вернул: " << t.getMinutes() << "\n";
+
+    std::cout << "Итоговое время: " << t << "\n\n";
+
+    std::cout << "Нажмите Enter для продолжения...";
+    clearInputBuffer();
+    std::cin.get();
+}
+
+// Функция для тестирования вычитания
+void testSubtractMethod() {
+    std::cout << "\n=== ТЕСТИРОВАНИЕ ВЫЧИТАНИЯ ===\n";
+
+    std::cout << "Введите первое время (уменьшаемое):\n";
+    Time t1 = Time::inputTime("");
+
+    std::cout << "Введите второе время (вычитаемое):\n";
+    Time t2 = Time::inputTime("");
+
+    Time result = t1.subtract(t2);
+    std::cout << "Результат: " << t1 << " - " << t2 << " = " << result << "\n\n";
+
+    std::cout << "Нажмите Enter для продолжения...";
+    clearInputBuffer();
+    std::cin.get();
+}
+
+// Функция вывода
+void testOutputOperator() {
+    std::cout << "\n=== ТЕСТИРОВАНИЕ ВЫВОДА ===\n";
+
+    Time t = Time::inputTime("Введите время для вывода:\n");
+    std::cout << "Результат работы оператора вывода: " << t << "\n\n";
+
+    std::cout << "Нажмите Enter для продолжения...";
+    clearInputBuffer();
+    std::cin.get();
+}
+
+int main() {
+    setlocale(LC_ALL, "Russian");
+    int choice;
+
+    do {
+        displayMenu();
+        std::cin >> choice;
+        clearInputBuffer();
+
+        try {
+            switch (choice) {
+            case 1:
+                testConstructors();
+                break;
+            case 2:
+                testGettersSetters();
+                break;
+            case 3:
+                testOutputOperator();
+                break;
+            case 4:
+                testSubtractMethod();
+                break;
+            case 0:
+                std::cout << "Выход из программы.\n";
+                break;
+            default:
+                std::cout << "Неверный выбор! Попробуйте снова.\n";
+                break;
+            }
+        }
+        catch (const std::exception& e) {
+            std::cout << "Произошла ошибка: " << e.what() << "\n";
+            std::cout << "Нажмите Enter для продолжения...";
+            std::cin.get();
+        }
+
+    } while (choice != 0);
+
+    return 0;
+}
