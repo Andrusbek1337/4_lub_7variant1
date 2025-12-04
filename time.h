@@ -5,14 +5,7 @@
 #include <stdexcept>
 
 class Time {
-private:
-    short int hours;
-    short int minutes;
-
-    // Метод для нормализации времени
-    void normalize();
-
-public:
+  public:
     // Конструктор по умолчанию
     Time();
 
@@ -54,6 +47,13 @@ public:
 
     // Дружественные функции
     friend std::ostream& operator<<(std::ostream& os, const Time& time);
+
+  private:
+    short int hours_;
+    short int minutes_;
+
+    // Метод для нормализации времени
+    void normalize();
 };
 
 
