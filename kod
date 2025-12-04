@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <stdexcept>
 #include <limits>
+#include <string>
 
 class Time {
 private:
@@ -36,6 +37,7 @@ public:
         if (!isValidTime(h, m)) {
             throw std::invalid_argument("Некорректное время: часы должны быть от 0 до 23, минуты от 0 до 59");
         }
+        normalize(); // Если минуты > 59
     }
 
     // Конструктор копирования
@@ -60,20 +62,20 @@ public:
         minutes = m;
     }
 
-    // Метод для проверки корректности времени
+    // Проверка корректности времени
     static bool isValidTime(short int h, short int m) {
         return (h >= 0 && h <= 23) && (m >= 0 && m <= 59);
     }
 
-    // Метод вычитания
+    // Метод вычитания переменной типа Time
     Time subtract(const Time& other) const {
         int totalMinutes1 = hours * 60 + minutes;
         int totalMinutes2 = other.hours * 60 + other.minutes;
         int diffMinutes = totalMinutes1 - totalMinutes2;
 
-        // Переход через сутки
+        // Обработка перехода через сутки
         if (diffMinutes < 0) {
-            diffMinutes += 24 * 60; // Переход к предыдущим суткам
+            diffMinutes += 24 * 60;
         }
 
         short int resultHours = diffMinutes / 60;
@@ -87,172 +89,242 @@ public:
         return Time(resultHours, resultMinutes);
     }
 
+    //УНАРНЫЕ ОПЕРАЦИИ_______________________________________________________________________
+
+    // Префиксный инкремент (++time) - добавляет минуту
+    Time& operator++() {
+        minutes++;
+        normalize();
+        return *this;
+    }
+
+    // Постфиксный инкремент (time++) - добавляет минуту
+    Time operator++(int) {
+        Time temp = *this;
+        minutes++;
+        normalize();
+        return temp;
+    }
+
+    // Префиксный декремент (--time) - вычитает минуту
+    Time& operator--() {
+        minutes--;
+        normalize();
+        return *this;
+    }
+
+    // Постфиксный декремент (time--) - вычитает минуту
+    Time operator--(int) {
+        Time temp = *this;
+        minutes--;
+        normalize();
+        return temp;
+    }
+
+    // ОПЕРАЦИИ ПРИВЕДЕНИЯ_______________________________________________________________
+
+    // Неявное приведение к int (количество минут)
+    operator int() const {
+        return hours * 60 + minutes;
+    }
+
+    // Явное приведение к bool (true если время не 00:00)
+    explicit operator bool() const {
+        return (hours != 0 || minutes != 0);
+    }
+
+    // БИНАРНЫЕ ОПЕРАЦИИ_____________________________________________________________________
+
+    // Оператор меньше
+    bool operator<(const Time& other) const {
+        return (hours * 60 + minutes) < (other.hours * 60 + other.minutes);
+    }
+
+    // Оператор больше
+    bool operator>(const Time& other) const {
+        return (hours * 60 + minutes) > (other.hours * 60 + other.minutes);
+    }
+
+    // Оператор равенства
+    bool operator==(const Time& other) const {
+        return (hours == other.hours) && (minutes == other.minutes);
+    }
+
+    // Оператор неравенства
+    bool operator!=(const Time& other) const {
+        return !(*this == other);
+    }
+
     // Перегрузка оператора вывода
     friend std::ostream& operator<<(std::ostream& os, const Time& time) {
         os << std::setw(2) << std::setfill('0') << time.hours << ":"
             << std::setw(2) << std::setfill('0') << time.minutes;
         return os;
     }
-
-    // Метод для ввода времени
-    static Time inputTime(const std::string& prompt) {
-        short int h, m;
-        std::cout << prompt;
-
-        while (true) {
-            std::cout << "Введите часы (0-23): ";
-            std::cin >> h;
-            std::cout << "Введите минуты (0-59): ";
-            std::cin >> m;
-
-            if (isValidTime(h, m)) {
-                break;
-            }
-            std::cout << "Вы ввели несуществуещеее время, исправтесь: \n";
-        }
-
-        return Time(h, m);
-    }
 };
 
-// Функция для очистки буфера ввода
-void clearInputBuffer() {
-    std::cin.clear();
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+// Проверкой на не числа
+short int inputNumber(const std::string& prompt, short int min, short int max) {
+    short int value;
+    std::string input;
+
+    while (true) {
+        std::cout << prompt;
+        std::cin >> input;
+
+        // Проверяем, что ввод состоит только из цифр
+        bool isNumber = true;
+        for (char c : input) {
+            if (!std::isdigit(c) && !(c == '-' && &c == &input[0])) {
+                isNumber = false;
+                break;
+            }
+        }
+
+        if (!isNumber) {
+            std::cout << "Вы ввели число, а не текст.\n";
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            continue;
+        }
+
+        // Преобразуем строку в число
+        try {
+            value = std::stoi(input);
+
+            // Проверяем диапазон
+            if (value >= min && value <= max) {
+                break;
+            }
+            else {
+                std::cout << "Число должно быть от " << min << " до " << max << ".\n";
+            }
+        }
+        catch (const std::exception&) {
+            std::cout << "Неверное число.\n";
+        }
+
+        std::cin.clear();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    }
+
+    return value;
 }
 
-// Функция для отображения меню
-void displayMenu() {
-    std::cout << "\n=== МЕНЮ ===\n";
-    std::cout << "1. Тестирование конструкторов\n";
-    std::cout << "2. Тестирование геттеров и сеттеров\n";
-    std::cout << "3. Тестирование оператора вывода\n";
-    std::cout << "4. Тестирование вычитания\n";
-    std::cout << "0. Выход\n";
-    std::cout << "Выберите нужный пункт\: ";
-}
+// Функция для ввода времени
+Time inputTime(const std::string& prompt) {
+    std::cout << prompt;
 
-// Функция для тестирования конструкторов
-void testConstructors() {
-    std::cout << "\n=== ТЕСТИРОВАНИЕ КОНСТРУКТОРОВ ===\n";
+    short int h = inputNumber("Введите часы (0-23): ", 0, 23);
+    short int m = inputNumber("Введите минуты (0-59): ", 0, 59);
 
-    // Тест конструктора по умолчанию
-    std::cout << "1. Конструктор по умолчанию:\n";
-    Time t1;
-    std::cout << "Time t1; -> " << t1 << "\n\n";
-
-    // Тест конструктора с параметрами
-    std::cout << "2. Конструктор с параметрами:\n";
-    Time t2 = Time::inputTime("Введите параметры для конструктора:\n");
-    std::cout << "Результат: " << t2 << "\n\n";
-
-    // Тест конструктора копирования
-    std::cout << "3. Конструктор копирования (копируем предыдущий объект):\n";
-    Time t3(t2);
-    std::cout << "Time t3(t2); -> " << t3 << "\n\n";
-
-    std::cout << "Нажмите Enter для продолжения...";
-    clearInputBuffer();
-    std::cin.get();
-}
-
-// Функция для тестирования геттеров и сеттеров
-void testGettersSetters() {
-    std::cout << "\n=== ТЕСТИРОВАНИЕ ГЕТТЕРОВ И СЕТТЕРОВ ===\n";
-
-    Time t;
-    std::cout << "Начальное время: " << t << "\n";
-
-    // Тест сеттеров и геттеров
-    short int h, m;
-
-    std::cout << "Тестирование setHours/getHours:\n";
-    std::cout << "Введите новое значение часов (0-23): ";
-    std::cin >> h;
-    t.setHours(h);
-    std::cout << "getHours() вернул: " << t.getHours() << "\n";
-
-    std::cout << "Тестирование setMinutes/getMinutes:\n";
-    std::cout << "Введите новое значение минут (0-59): ";
-    std::cin >> m;
-    t.setMinutes(m);
-    std::cout << "getMinutes() вернул: " << t.getMinutes() << "\n";
-
-    std::cout << "Итоговое время: " << t << "\n\n";
-
-    std::cout << "Нажмите Enter для продолжения...";
-    clearInputBuffer();
-    std::cin.get();
-}
-
-// Функция для тестирования вычитания
-void testSubtractMethod() {
-    std::cout << "\n=== ТЕСТИРОВАНИЕ ВЫЧИТАНИЯ ===\n";
-
-    std::cout << "Введите первое время (уменьшаемое):\n";
-    Time t1 = Time::inputTime("");
-
-    std::cout << "Введите второе время (вычитаемое):\n";
-    Time t2 = Time::inputTime("");
-
-    Time result = t1.subtract(t2);
-    std::cout << "Результат: " << t1 << " - " << t2 << " = " << result << "\n\n";
-
-    std::cout << "Нажмите Enter для продолжения...";
-    clearInputBuffer();
-    std::cin.get();
-}
-
-// Функция вывода
-void testOutputOperator() {
-    std::cout << "\n=== ТЕСТИРОВАНИЕ ВЫВОДА ===\n";
-
-    Time t = Time::inputTime("Введите время для вывода:\n");
-    std::cout << "Результат работы оператора вывода: " << t << "\n\n";
-
-    std::cout << "Нажмите Enter для продолжения...";
-    clearInputBuffer();
-    std::cin.get();
+    return Time(h, m);
 }
 
 int main() {
     setlocale(LC_ALL, "Russian");
-    int choice;
+    try {
 
-    do {
-        displayMenu();
-        std::cin >> choice;
-        clearInputBuffer();
+        // 1. Тестирование конструкторов
+        std::cout << "1. Тестирование конструкторов:\n";
+        Time t1;
+        std::cout << "Конструктор по умолчанию: " << t1 << "\n";
 
-        try {
-            switch (choice) {
-            case 1:
-                testConstructors();
-                break;
-            case 2:
-                testGettersSetters();
-                break;
-            case 3:
-                testOutputOperator();
-                break;
-            case 4:
-                testSubtractMethod();
-                break;
-            case 0:
-                std::cout << "Выход из программы.\n";
-                break;
-            default:
-                std::cout << "Неверный выбор! Попробуйте снова.\n";
-                break;
-            }
+        Time t2 = inputTime("Введите время для конструктора с параметрами:\n");
+        std::cout << "Конструктор с параметрами: " << t2 << "\n";
+
+        Time t3(t2);
+        std::cout << "Конструктор копирования: " << t3 << "\n\n";
+
+        // 2. Тестирование геттеров и сеттеров
+        std::cout << "2. Тестирование геттеров и сеттеров:\n";
+        Time t4;
+
+        short int hours = inputNumber("Введите часы для setHours (0-23): ", 0, 23);
+        t4.setHours(hours);
+
+        short int minutes = inputNumber("Введите минуты для setMinutes (0-59): ", 0, 59);
+        t4.setMinutes(minutes);
+
+        std::cout << "setHours(" << hours << "), setMinutes(" << minutes << "): " << t4 << "\n";
+        std::cout << "getHours(): " << t4.getHours() << "\n";
+        std::cout << "getMinutes(): " << t4.getMinutes() << "\n\n";
+
+        // 3. Тестирование оператора вывода
+        std::cout << "3. Тестирование оператора вывода:\n";
+        Time t5(5, 7);
+        std::cout << "Время: " << t5 << " (форматированный вывод)\n\n";
+
+        // 4. Тестирование метода вычитания
+        std::cout << "4. Тестирование метода вычитания:\n";
+        Time t6 = inputTime("Введите первое время для вычитания:\n");
+        Time t7 = inputTime("Введите второе время для вычитания:\n");
+        Time result1 = t6.subtract(t7);
+        std::cout << t6 << " - " << t7 << " = " << result1 << "\n\n";
+
+        // 5. Тестирование унарных операций
+        std::cout << "5. Тестирование унарных операций (++, --):\n";
+        Time t8 = inputTime("Введите время для тестирования ++ и --:\n");
+        std::cout << "Исходное время: " << t8 << "\n";
+
+        std::cout << "Префиксный инкремент (++t): " << ++t8 << "\n";
+        std::cout << "Постфиксный инкремент (t++): " << t8++ << "\n";
+        std::cout << "После постфиксного инкремента: " << t8 << "\n";
+
+        std::cout << "Префиксный декремент (--t): " << --t8 << "\n";
+        std::cout << "Постфиксный декремент (t--): " << t8-- << "\n";
+        std::cout << "После постфиксного декремента: " << t8 << "\n\n";
+
+        // 6. Тестирование операций приведения
+        std::cout << "6. Тестирование операций приведения типа:\n";
+        Time t11 = inputTime("Введите время для тестирования приведений:\n");
+
+        // Неявное приведение к int
+        int minutes_total = t11;
+        std::cout << "Неявное приведение к int: " << minutes_total << " минут\n";
+
+        // Явное приведение к bool
+        bool isNonZero = static_cast<bool>(t11);
+        std::cout << "Явное приведение к bool: " << std::boolalpha << isNonZero << "\n\n";
+
+        if (t11) {
+            std::cout << "Время " << t11 << " не равно 00:00\n";
+            std::cout << "Оно равно " << (int)t11 << " минутам\n";
         }
-        catch (const std::exception& e) {
-            std::cout << "Произошла ошибка: " << e.what() << "\n";
-            std::cout << "Нажмите Enter для продолжения...";
-            std::cin.get();
+        else {
+            std::cout << "Время равно 00:00\n";
+        }
+        std::cout << "\n";
+
+        // 7. Тестирование бинарных операций
+        std::cout << "7. Тестирование бинарных операций (<, >):\n";
+        Time t12 = inputTime("Введите первое время для сравнения:\n");
+        Time t13 = inputTime("Введите второе время для сравнения:\n");
+
+        std::cout << "\nСравнение:\n";
+        std::cout << "t1 = " << t12 << " (" << (int)t12 << " минут)\n";
+        std::cout << "t2 = " << t13 << " (" << (int)t13 << " минут)\n\n";
+
+        std::cout << "t1 < t2: " << std::boolalpha << (t12 < t13) << "\n";
+        std::cout << "t1 > t2: " << std::boolalpha << (t12 > t13) << "\n";
+        std::cout << "t1 == t2: " << std::boolalpha << (t12 == t13) << "\n";
+        std::cout << "t1 != t2: " << std::boolalpha << (t12 != t13) << "\n\n";
+
+        if (t12 < t13) {
+            std::cout << t12 << " раньше, чем " << t13 << "\n";
+        }
+        else if (t12 > t13) {
+            std::cout << t12 << " позже, чем " << t13 << "\n";
+        }
+        else {
+            std::cout << t12 << " и " << t13 << " равны\n";
         }
 
-    } while (choice != 0);
+    }
+    catch (const std::exception& e) {
+        std::cout << "Произошла ошибка: " << e.what() << "\n";
+        return 1;
+    }
 
     return 0;
 }
