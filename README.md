@@ -133,7 +133,7 @@ bool (явная) – результатом является true, если ч�
 
 
 
-тесты:
+# тестирование:
 
 <img width="662" height="250" alt="image" src="https://github.com/user-attachments/assets/1d2c2121-6612-483c-aaee-30f88846f67b" />
 <img width="526" height="230" alt="image" src="https://github.com/user-attachments/assets/b8adbabf-d6f7-489a-8989-346f68ca31f0" />
